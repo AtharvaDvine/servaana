@@ -23,11 +23,21 @@ function App() {
   }, [isAuthenticated, restaurant?.setupComplete, setRestaurant]);
 
   if (!isAuthenticated) {
-    return <AuthPage />;
+    return (
+      <>
+        <AuthPage />
+        <Toast />
+      </>
+    );
   }
 
   if (!restaurant?.setupComplete) {
-    return <SetupPage />;
+    return (
+      <>
+        <SetupPage />
+        <Toast />
+      </>
+    );
   }
 
   return (
