@@ -171,11 +171,11 @@ const SetupPage = () => {
       // Redirect after a short delay to show the success message
       setTimeout(() => {
         if (isEditMode) {
-          window.location.href = '/dashboard';
+          window.location.replace('/dashboard');
         } else {
           window.location.reload();
         }
-      }, 2000);
+      }, 1500);
       
     } catch (err) {
       console.error('Setup error:', err);

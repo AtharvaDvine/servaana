@@ -45,10 +45,6 @@ const DashboardPage = () => {
     }
   }, [restaurant, setActiveOrders, error]);
 
-  // Debug logging
-  console.log('Restaurant data:', restaurant);
-  console.log('Tables:', restaurant?.tables);
-  
   // Group tables by area
   const tablesByArea = restaurant?.tables?.reduce((acc, table) => {
     if (!acc[table.areaName]) {
@@ -59,8 +55,6 @@ const DashboardPage = () => {
   }, {}) || {};
 
   const areas = Object.keys(tablesByArea);
-  console.log('Areas:', areas);
-  console.log('Tables by area:', tablesByArea);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-green-100 p-6">
@@ -83,27 +77,20 @@ const DashboardPage = () => {
 
         {/* Tables by Area */}
         <div className="space-y-8">
-          {areas.length === 0 ? (
-            <div className="card p-6 text-center">
-              <p className="text-gray-600">No tables found. Please check your setup or refresh the page.</p>
-              <p className="text-sm text-gray-500 mt-2">Debug: {JSON.stringify(restaurant?.tables)}</p>
-            </div>
-          ) : (
-            areas.map(areaName => (
-              <div key={areaName} className="card p-6">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
-                  <div className="w-4 h-4 bg-pastel-yellow rounded-full"></div>
-                  {areaName}
-                </h2>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                  {tablesByArea[areaName].map(table => (
-                    <TableCard key={table.label} table={table} />
-                  ))}
-                </div>
+          {areas.map(areaName => (
+            <div key={areaName} className="card p-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+                <div className="w-4 h-4 bg-pastel-yellow rounded-full"></div>
+                {areaName}
+              </h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {tablesByArea[areaName].map(table => (
+                  <TableCard key={table.label} table={table} />
+                ))}
               </div>
-            ))
-          )}
+            </div>
+          ))}
         </div>
 
         {/* Quick Stats */}
