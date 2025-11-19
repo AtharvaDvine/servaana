@@ -1,6 +1,7 @@
 {
-  "name": "restaurant-pos",
+  "name": "servaana",
   "version": "1.0.0",
+  "description": "Servaana - Modern Restaurant POS & Billing System",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",

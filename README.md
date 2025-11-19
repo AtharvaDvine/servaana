@@ -1,4 +1,4 @@
-# Restaurant POS & Billing System
+# Servaana - Restaurant POS & Billing System
 
 A modern, intuitive SaaS Restaurant Point of Sale and Billing System optimized for iPad/tablet touch screens with a clean, minimal design using soft pastel colors.
 
@@ -64,7 +64,7 @@ A modern, intuitive SaaS Restaurant Point of Sale and Billing System optimized f
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd restaurant-pos
+cd servaana
 
 # Install root dependencies
 npm install
