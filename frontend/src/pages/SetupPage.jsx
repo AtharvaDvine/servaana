@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, Edit2, Lock, ArrowUp, ArrowDown } from 'lucide-react';
 import { restaurantAPI } from '../utils/api';
 import useStore from '../stores/useStore';
+import useToastStore from '../stores/useToastStore';
 
 const SetupPage = () => {
   const { restaurant, setRestaurant, activeOrders } = useStore();
+  const { success, error, warning } = useToastStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [areas, setAreas] = useState([]);
   const [tables, setTables] = useState([]);
@@ -43,52 +45,106 @@ const SetupPage = () => {
 
   const addArea = () => {
     const newArea = prompt('Enter area name:');
-    if (newArea && !areas.includes(newArea)) {
-      setAreas([...areas, newArea]);
+    if (newArea && newArea.trim()) {
+      if (!areas.includes(newArea)) {
+        setAreas([...areas, newArea]);
+        success(`Area "${newArea}" added successfully!`);
+      } else {
+        warning('Area name already exists!');
+      }
     }
   };
 
   const addTable = (areaName) => {
     const label = prompt('Table label:') || `T${tables.length + 1}`;
     const seats = parseInt(prompt('Number of seats:') || '4');
-    if (label && !tables.some(t => t.label === label)) {
-      setTables([...tables, { label, seats, areaName, status: 'free' }]);
-    } else if (tables.some(t => t.label === label)) {
-      alert('Table label already exists!');
+    
+    if (!label || !label.trim()) {
+      warning('Please enter a valid table label!');
+      return;
     }
+    
+    if (tables.some(t => t.label === label)) {
+      error('Table label already exists! Please choose a different label.');
+      return;
+    }
+    
+    if (seats < 1 || seats > 20) {
+      warning('Number of seats must be between 1 and 20!');
+      return;
+    }
+    
+    setTables([...tables, { label, seats, areaName, status: 'free' }]);
+    success(`Table "${label}" with ${seats} seats added to ${areaName}!`);
   };
 
   const removeTable = (index) => {
+    const table = tables[index];
+    if (hasActiveOrder(table.label)) {
+      error(`Cannot remove table "${table.label}" - it has an active order!`);
+      return;
+    }
     setTables(tables.filter((_, i) => i !== index));
+    success(`Table "${table.label}" removed successfully!`);
   };
 
   const addCategory = () => {
     const newCategory = prompt('Enter category name:');
-    if (newCategory && !categories.includes(newCategory)) {
-      setCategories([...categories, newCategory]);
+    if (newCategory && newCategory.trim()) {
+      if (!categories.includes(newCategory)) {
+        setCategories([...categories, newCategory]);
+        success(`Category "${newCategory}" added successfully!`);
+      } else {
+        warning('Category name already exists!');
+      }
     }
   };
 
   const addMenuItem = (categoryName) => {
     const name = prompt('Item name:');
-    const price = parseFloat(prompt('Price:') || '0');
+    const priceStr = prompt('Price:');
+    const price = parseFloat(priceStr || '0');
     const description = prompt('Description (optional):') || '';
     
-    if (name && price > 0) {
-      setMenuItems([...menuItems, { name, price, description, categoryName }]);
+    if (!name || !name.trim()) {
+      warning('Please enter a valid item name!');
+      return;
     }
+    
+    if (!priceStr || price <= 0) {
+      warning('Please enter a valid price greater than 0!');
+      return;
+    }
+    
+    if (menuItems.some(item => item.name.toLowerCase() === name.toLowerCase() && item.categoryName === categoryName)) {
+      error('An item with this name already exists in this category!');
+      return;
+    }
+    
+    setMenuItems([...menuItems, { name, price, description, categoryName }]);
+    success(`Menu item "${name}" added to ${categoryName} for $${price.toFixed(2)}!`);
   };
 
   const removeMenuItem = (index) => {
+    const item = menuItems[index];
     setMenuItems(menuItems.filter((_, i) => i !== index));
+    success(`Menu item "${item.name}" removed successfully!`);
   };
 
   const handleSaveSetup = async () => {
+    // Validation before saving
+    if (tables.length === 0) {
+      error('Please add at least one table before saving!');
+      return;
+    }
+    
+    if (menuItems.length === 0) {
+      error('Please add at least one menu item before saving!');
+      return;
+    }
+    
     setLoading(true);
     try {
-      console.log('Saving setup with:', { tables, menuItems });
-      console.log('Restaurant ID:', restaurant?.id || restaurant?._id);
-      
       const restaurantId = restaurant?.id || restaurant?._id;
       if (!restaurantId) {
         throw new Error('Restaurant ID not found');
@@ -104,19 +160,36 @@ const SetupPage = () => {
         menuItems: allMenuItems
       });
       
-      console.log('Setup response:', response.data);
       setRestaurant(response.data);
       
-      // Redirect to dashboard or show success message
-      alert(isEditMode ? 'Changes saved successfully!' : 'Setup completed successfully!');
-      if (isEditMode) {
-        window.location.href = '/dashboard';
+      success(
+        isEditMode 
+          ? 'Changes saved successfully! Redirecting to dashboard...'
+          : 'Setup completed successfully! Welcome to Servaana!'
+      );
+      
+      // Redirect after a short delay to show the success message
+      setTimeout(() => {
+        if (isEditMode) {
+          window.location.href = '/dashboard';
+        } else {
+          window.location.reload();
+        }
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Setup error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
+      
+      if (err.response?.status === 400) {
+        error('Invalid data provided. Please check your tables and menu items.');
+      } else if (err.response?.status === 401) {
+        error('Session expired. Please log in again.');
+      } else if (err.response?.status === 404) {
+        error('Restaurant not found. Please try logging in again.');
       } else {
-        window.location.reload();
+        error(`Failed to save setup: ${errorMessage}`);
       }
-    } catch (error) {
-      console.error('Setup error:', error);
-      alert(`Error saving setup: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }

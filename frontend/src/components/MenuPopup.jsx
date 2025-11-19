@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, ShoppingCart, Edit, Trash2, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import useStore from '../stores/useStore';
+import useToastStore from '../stores/useToastStore';
 import { orderAPI } from '../utils/api';
 import { playNotificationSound, showBrowserNotification } from '../utils/notifications';
 
@@ -15,6 +16,7 @@ const MenuPopup = () => {
     activeOrders,
     completeOrder 
   } = useStore();
+  const { success, error, warning } = useToastStore();
   
   const [orderItems, setOrderItems] = useState({});
   const [loading, setLoading] = useState(false);
@@ -99,7 +101,7 @@ const MenuPopup = () => {
     console.log('Processed items:', items);
 
     if (items.length === 0) {
-      alert('Please add items to your order');
+      warning('Please add items to your order before confirming!');
       return;
     }
 
@@ -184,7 +186,11 @@ const MenuPopup = () => {
         browserNotifications
       );
 
-      alert(existingOrder ? 'Order updated successfully!' : 'Order confirmed successfully!');
+      success(
+        existingOrder 
+          ? `Order updated successfully! Total: ₹${calculateTotal().toFixed(2)}`
+          : `Order confirmed successfully! Total: ₹${calculateTotal().toFixed(2)}`
+      );
       closeMenuPopup();
     } catch (error) {
       console.error('Order error:', error);
@@ -200,7 +206,17 @@ const MenuPopup = () => {
       
       playNotificationSound(warningSound, soundVolume, soundEnabled);
       
-      alert(`Error ${existingOrder ? 'updating' : 'creating'} order: ${error.response?.data?.message || error.message}`);
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
+      
+      if (err.response?.status === 400) {
+        error('Invalid order data. Please check your items and try again.');
+      } else if (err.response?.status === 401) {
+        error('Session expired. Please log in again.');
+      } else if (err.response?.status === 404) {
+        error('Restaurant or table not found. Please refresh and try again.');
+      } else {
+        error(`Failed to ${existingOrder ? 'update' : 'create'} order: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -249,11 +265,19 @@ const MenuPopup = () => {
         browserNotifications
       );
       
-      alert('Order deleted successfully!');
+      success('Order deleted successfully!');
       closeMenuPopup();
     } catch (error) {
       console.error('Delete order error:', error);
-      alert(`Error deleting order: ${error.response?.data?.message || error.message}`);
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
+      
+      if (err.response?.status === 401) {
+        error('Session expired. Please log in again.');
+      } else if (err.response?.status === 404) {
+        error('Order not found. It may have already been deleted.');
+      } else {
+        error(`Failed to delete order: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }

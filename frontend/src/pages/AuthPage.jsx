@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { authAPI } from '../utils/api';
 import useStore from '../stores/useStore';
+import useToastStore from '../stores/useToastStore';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,6 +10,7 @@ const AuthPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const { login } = useStore();
+  const { success, error } = useToastStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,8 +22,32 @@ const AuthPage = () => {
         : await authAPI.register(formData);
       
       login(response.data.token, response.data.restaurant);
-    } catch (error) {
-      console.error('Auth error:', error);
+      success(
+        isLogin 
+          ? `Welcome back, ${response.data.restaurant.name}!`
+          : `Account created successfully! Welcome to Servaana, ${response.data.restaurant.name}!`
+      );
+    } catch (err) {
+      console.error('Auth error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Something went wrong';
+      
+      if (isLogin) {
+        if (err.response?.status === 401) {
+          error('Invalid email or password. Please check your credentials.');
+        } else if (err.response?.status === 404) {
+          error('Account not found. Please check your email or create a new account.');
+        } else {
+          error(`Login failed: ${errorMessage}`);
+        }
+      } else {
+        if (err.response?.status === 409) {
+          error('An account with this email already exists. Please try logging in instead.');
+        } else if (err.response?.status === 400) {
+          error('Please fill in all required fields correctly.');
+        } else {
+          error(`Registration failed: ${errorMessage}`);
+        }
+      }
     } finally {
       setLoading(false);
     }

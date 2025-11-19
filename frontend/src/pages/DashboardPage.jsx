@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import useStore from '../stores/useStore';
+import useToastStore from '../stores/useToastStore';
 import { orderAPI } from '../utils/api';
 import TableCard from '../components/TableCard';
 import MenuPopup from '../components/MenuPopup';
@@ -13,22 +14,36 @@ const DashboardPage = () => {
     showBillPopup, 
     setActiveOrders 
   } = useStore();
+  const { error } = useToastStore();
 
   useEffect(() => {
     const fetchActiveOrders = async () => {
       try {
         const restaurantId = restaurant?.id || restaurant?._id;
+        if (!restaurantId) {
+          error('Restaurant ID not found. Please try logging in again.');
+          return;
+        }
         const response = await orderAPI.getActive(restaurantId);
         setActiveOrders(response.data);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to load orders';
+        
+        if (err.response?.status === 401) {
+          error('Session expired. Please log in again.');
+        } else if (err.response?.status === 404) {
+          error('Restaurant not found. Please check your account.');
+        } else {
+          error(`Failed to load active orders: ${errorMessage}`);
+        }
       }
     };
 
     if (restaurant?.id || restaurant?._id) {
       fetchActiveOrders();
     }
-  }, [restaurant, setActiveOrders]);
+  }, [restaurant, setActiveOrders, error]);
 
   // Group tables by area
   const tablesByArea = restaurant?.tables?.reduce((acc, table) => {

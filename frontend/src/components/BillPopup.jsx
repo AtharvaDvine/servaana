@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Printer, Receipt } from 'lucide-react';
 import useStore from '../stores/useStore';
+import useToastStore from '../stores/useToastStore';
 import { orderAPI } from '../utils/api';
 import { playNotificationSound, showBrowserNotification } from '../utils/notifications';
 
@@ -12,6 +13,7 @@ const BillPopup = () => {
     completeOrder, 
     setRestaurant 
   } = useStore();
+  const { success, error } = useToastStore();
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -30,8 +32,17 @@ const BillPopup = () => {
         console.log('Found table order:', tableOrder);
         
         setOrder(tableOrder);
-      } catch (error) {
-        console.error('Error fetching order:', error);
+      } catch (err) {
+        console.error('Error fetching order:', err);
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to load order';
+        
+        if (err.response?.status === 401) {
+          error('Session expired. Please log in again.');
+        } else if (err.response?.status === 404) {
+          error('Order not found. The table may not have an active order.');
+        } else {
+          error(`Failed to load order details: ${errorMessage}`);
+        }
       }
     };
 
@@ -78,12 +89,26 @@ const BillPopup = () => {
         browserNotifications
       );
 
+      success(`Order completed successfully! Total: ₹${order.totalAmount.toFixed(2)}`);
+      
       // Simulate printing
       window.print();
       
       closeBillPopup();
-    } catch (error) {
-      console.error('Error completing order:', error);
+    } catch (err) {
+      console.error('Error completing order:', err);
+      
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
+      
+      if (err.response?.status === 401) {
+        error('Session expired. Please log in again.');
+      } else if (err.response?.status === 404) {
+        error('Order not found. It may have already been completed.');
+      } else if (err.response?.status === 400) {
+        error('Invalid order data. Please try again.');
+      } else {
+        error(`Failed to complete order: ${errorMessage}`);
+      }
       
       // Play warning sound for error
       const notificationSettings = restaurant?.notificationSettings || {};
