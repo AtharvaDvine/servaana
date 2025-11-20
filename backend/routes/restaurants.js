@@ -168,7 +168,11 @@ router.delete('/:id/expenses/:expenseId', protect, async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
     
-    restaurant.expenses.id(req.params.expenseId).remove();
+    // Filter out the expense to delete it
+    restaurant.expenses = restaurant.expenses.filter(
+      expense => expense._id.toString() !== req.params.expenseId
+    );
+    
     await restaurant.save();
 
     res.json(restaurant);
