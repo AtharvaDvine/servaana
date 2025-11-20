@@ -181,7 +181,7 @@ const InventoryPage = () => {
                       </button>
                     </td>
                   </tr>
-                ))
+                ))}
               </tbody>
             </table>
             
