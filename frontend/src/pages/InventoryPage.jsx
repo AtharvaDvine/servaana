@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Package, DollarSign } from 'lucide-react';
+import { Plus, Package, DollarSign, Trash2 } from 'lucide-react';
 import { restaurantAPI } from '../utils/api';
 import useStore from '../stores/useStore';
+import useToastStore from '../stores/useToastStore';
 
 const InventoryPage = () => {
   const { restaurant, setRestaurant } = useStore();
+  const { success, error } = useToastStore();
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenseData, setExpenseData] = useState({
     description: '',
@@ -13,6 +15,23 @@ const InventoryPage = () => {
   });
 
   const categories = ['Food & Beverages', 'Utilities', 'Staff', 'Equipment', 'Other'];
+
+  const handleDeleteExpense = async (expenseId, description) => {
+    if (!confirm(`Are you sure you want to delete the expense "${description}"?`)) {
+      return;
+    }
+
+    try {
+      const restaurantId = restaurant._id || restaurant.id;
+      const response = await restaurantAPI.deleteExpense(restaurantId, expenseId);
+      setRestaurant(response.data);
+      success(`Expense "${description}" deleted successfully!`);
+    } catch (err) {
+      console.error('Error deleting expense:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete expense';
+      error(`Failed to delete expense: ${errorMessage}`);
+    }
+  };
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
@@ -30,10 +49,11 @@ const InventoryPage = () => {
       setRestaurant(response.data);
       setExpenseData({ description: '', amount: '', category: 'Food & Beverages' });
       setShowExpenseForm(false);
-      alert('Expense added successfully!');
-    } catch (error) {
-      console.error('Error adding expense:', error);
-      alert('Error adding expense: ' + (error.response?.data?.message || error.message));
+      success(`Expense "${expenseData.description}" added successfully!`);
+    } catch (err) {
+      console.error('Error adding expense:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to add expense';
+      error(`Failed to add expense: ${errorMessage}`);
     }
   };
 
@@ -78,16 +98,25 @@ const InventoryPage = () => {
 
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {todayExpenses.map((expense, index) => (
-                <div key={index} className="bg-white p-3 rounded-xl flex justify-between items-center">
-                  <div>
+                <div key={expense._id || index} className="bg-white p-3 rounded-xl flex justify-between items-center">
+                  <div className="flex-1">
                     <div className="font-medium">{expense.description}</div>
                     <div className="text-sm text-gray-600">{expense.category}</div>
                   </div>
-                  <div className="font-semibold text-soft-red">
-                    ${expense.amount.toFixed(2)}
+                  <div className="flex items-center gap-3">
+                    <div className="font-semibold text-soft-red">
+                      ${expense.amount.toFixed(2)}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteExpense(expense._id, expense.description)}
+                      className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                      title="Delete expense"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
-              ))}
+              ))
               
               {todayExpenses.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
@@ -124,11 +153,12 @@ const InventoryPage = () => {
                   <th className="text-left py-3 px-4">Description</th>
                   <th className="text-left py-3 px-4">Category</th>
                   <th className="text-right py-3 px-4">Amount</th>
+                  <th className="text-center py-3 px-4">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {restaurant?.expenses?.slice(-10).reverse().map((expense, index) => (
-                  <tr key={index} className="border-b border-gray-100">
+                  <tr key={expense._id || index} className="border-b border-gray-100">
                     <td className="py-3 px-4 text-gray-600">
                       {new Date(expense.date).toLocaleDateString()}
                     </td>
@@ -141,8 +171,17 @@ const InventoryPage = () => {
                     <td className="py-3 px-4 text-right font-semibold text-soft-red">
                       ${expense.amount.toFixed(2)}
                     </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => handleDeleteExpense(expense._id, expense.description)}
+                        className="text-red-500 hover:text-red-700 p-2 rounded transition-colors"
+                        title="Delete expense"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
-                ))}
+                ))
               </tbody>
             </table>
             

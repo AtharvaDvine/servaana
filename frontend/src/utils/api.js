@@ -29,6 +29,7 @@ export const restaurantAPI = {
   updateTableStatus: (id, tableLabel, status) => 
     api.put(`/restaurants/${id}/tables/${tableLabel}`, { status }),
   addExpense: (id, data) => api.post(`/restaurants/${id}/expenses`, data),
+  deleteExpense: (id, expenseId) => api.delete(`/restaurants/${id}/expenses/${expenseId}`),
   updateProfile: (id, data) => api.put(`/restaurants/${id}/profile`, data),
   verifyEmail: (id, token) => api.post(`/restaurants/${id}/verify-email`, { token }),
   updateNotificationSettings: (id, settings) => api.put(`/restaurants/${id}/notifications`, { notificationSettings: settings }),

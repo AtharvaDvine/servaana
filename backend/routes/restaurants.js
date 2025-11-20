@@ -159,4 +159,22 @@ router.post('/:id/expenses', protect, async (req, res) => {
   }
 });
 
+// Delete expense
+router.delete('/:id/expenses/:expenseId', protect, async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+    
+    restaurant.expenses.id(req.params.expenseId).remove();
+    await restaurant.save();
+
+    res.json(restaurant);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;
