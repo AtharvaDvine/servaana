@@ -116,7 +116,7 @@ const InventoryPage = () => {
                     </button>
                   </div>
                 </div>
-              ))
+              ))}
               
               {todayExpenses.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
