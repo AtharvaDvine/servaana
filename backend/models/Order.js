@@ -15,6 +15,7 @@ const orderSchema = new mongoose.Schema({
   }],
   totalAmount: { type: Number, required: true },
   status: { type: String, enum: ['active', 'completed', 'preparing', 'ready'], default: 'active' },
+  paymentMethod: { type: String, enum: ['cash', 'card', 'online'], default: null },
   orderDate: { type: Date, default: Date.now }
 }, { timestamps: true });
 

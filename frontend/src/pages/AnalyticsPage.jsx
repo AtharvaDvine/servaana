@@ -247,7 +247,7 @@ const AnalyticsPage = () => {
                       </div>
                     </div>
                     
-                    <div className="text-sm text-gray-700">
+                    <div className="text-sm text-gray-700 mb-2">
                       <span className="font-medium">Items: </span>
                       {order.items.map((item, index) => (
                         <span key={index}>
@@ -256,6 +256,20 @@ const AnalyticsPage = () => {
                         </span>
                       ))}
                     </div>
+                    
+                    {order.paymentMethod && (
+                      <div className="text-sm">
+                        <span className="font-medium text-gray-600">Payment: </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          order.paymentMethod === 'cash' ? 'bg-green-100 text-green-600' :
+                          order.paymentMethod === 'card' ? 'bg-blue-100 text-blue-600' :
+                          order.paymentMethod === 'online' ? 'bg-purple-100 text-purple-600' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {order.paymentMethod.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
@@ -357,6 +371,69 @@ const AnalyticsPage = () => {
             ))}
           </div>
         </div>
+
+        {/* Payment Method Breakdown */}
+        {(timeRange === 'today' || timeRange === 'yesterday') && analyticsData?.todaysOrders?.length > 0 && (
+          <div className="card p-6 mt-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">Payment Method Breakdown</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {['cash', 'card', 'online'].map(method => {
+                const methodOrders = analyticsData.todaysOrders.filter(order => order.paymentMethod === method);
+                const methodRevenue = methodOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+                const percentage = analyticsData.todaysOrders.length > 0 
+                  ? ((methodOrders.length / analyticsData.todaysOrders.length) * 100).toFixed(1)
+                  : 0;
+                
+                return (
+                  <div key={method} className={`p-4 rounded-xl text-center ${
+                    method === 'cash' ? 'bg-green-50 border border-green-200' :
+                    method === 'card' ? 'bg-blue-50 border border-blue-200' :
+                    'bg-purple-50 border border-purple-200'
+                  }`}>
+                    <div className={`text-2xl font-bold mb-1 ${
+                      method === 'cash' ? 'text-green-600' :
+                      method === 'card' ? 'text-blue-600' :
+                      'text-purple-600'
+                    }`}>
+                      {methodOrders.length}
+                    </div>
+                    <div className="text-sm text-gray-600 mb-1">
+                      {method.charAt(0).toUpperCase() + method.slice(1)} Orders
+                    </div>
+                    <div className={`text-lg font-semibold ${
+                      method === 'cash' ? 'text-green-600' :
+                      method === 'card' ? 'text-blue-600' :
+                      'text-purple-600'
+                    }`}>
+                      ₹{methodRevenue.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {percentage}% of orders
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Orders without payment method */}
+            {(() => {
+              const ordersWithoutPayment = analyticsData.todaysOrders.filter(order => !order.paymentMethod);
+              if (ordersWithoutPayment.length > 0) {
+                return (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">{ordersWithoutPayment.length} orders</span> completed without payment method information
+                      <span className="text-xs ml-2">(₹{ordersWithoutPayment.reduce((sum, order) => sum + order.totalAmount, 0).toLocaleString()})</span>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()
+            }
+          </div>
+        )}
 
         {/* Expense Breakdown */}
         <div className="card p-6 mt-8">

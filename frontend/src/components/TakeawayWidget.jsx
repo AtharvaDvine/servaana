@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Plus, ShoppingBag, Clock, CheckCircle, Package, Trash2 } from 'lucide-react';
 import { orderAPI } from '../utils/api';
 import useStore from '../stores/useStore';
+import useToastStore from '../stores/useToastStore';
 import NewTakeawayModal from './NewTakeawayModal';
+import PaymentMethodModal from './PaymentMethodModal';
 
 const TakeawayWidget = () => {
   const { restaurant, openMenuPopup } = useStore();
+  const { success, error } = useToastStore();
   const [takeawayOrders, setTakeawayOrders] = useState([]);
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const fetchTakeawayOrders = async () => {
@@ -44,10 +49,34 @@ const TakeawayWidget = () => {
     try {
       await orderAPI.updateStatus(orderId, newStatus);
       fetchTakeawayOrders(); // Refresh orders
-    } catch (error) {
-      console.error('Error updating status:', error);
+      success(`Order status updated to ${newStatus}!`);
+    } catch (err) {
+      console.error('Error updating status:', err);
+      error(`Failed to update order status: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleCompleteOrder = (order) => {
+    setSelectedOrderForPayment(order);
+    setShowPaymentModal(true);
+  };
+  
+  const handleCompleteWithPayment = async (paymentMethod) => {
+    if (!selectedOrderForPayment) return;
+    
+    setLoading(true);
+    try {
+      await orderAPI.complete(selectedOrderForPayment._id, paymentMethod);
+      fetchTakeawayOrders(); // Refresh orders
+      success(`Takeaway order ${selectedOrderForPayment.orderNumber} completed! Payment: ${paymentMethod.toUpperCase()}`);
+    } catch (err) {
+      console.error('Error completing order:', err);
+      error(`Failed to complete order: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setSelectedOrderForPayment(null);
     }
   };
   
@@ -75,10 +104,10 @@ const TakeawayWidget = () => {
     try {
       await orderAPI.delete(orderId);
       fetchTakeawayOrders(); // Refresh orders
-      alert('Order deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      alert('Error deleting order: ' + error.message);
+      success(`Order ${orderNumber} deleted successfully!`);
+    } catch (err) {
+      console.error('Error deleting order:', err);
+      error(`Failed to delete order: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -200,7 +229,7 @@ const TakeawayWidget = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleStatusUpdate(order._id, 'completed');
+                        handleCompleteOrder(order);
                       }}
                       disabled={loading}
                       className="flex-1 bg-gray-500 hover:bg-gray-600 text-white text-xs py-1 px-2 rounded transition-colors"
@@ -213,7 +242,7 @@ const TakeawayWidget = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleStatusUpdate(order._id, 'completed');
+                      handleCompleteOrder(order);
                     }}
                     disabled={loading}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded transition-colors"
@@ -242,6 +271,19 @@ const TakeawayWidget = () => {
         isOpen={showNewOrderModal}
         onClose={() => setShowNewOrderModal(false)}
         onOrderCreated={fetchTakeawayOrders}
+      />
+      
+      <PaymentMethodModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false);
+          setSelectedOrderForPayment(null);
+        }}
+        onConfirm={handleCompleteWithPayment}
+        orderDetails={{
+          tableLabel: selectedOrderForPayment?.orderNumber,
+          totalAmount: selectedOrderForPayment?.totalAmount
+        }}
       />
     </div>
   );

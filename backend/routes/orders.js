@@ -163,18 +163,25 @@ router.get('/restaurant/:restaurantId/all', protect, async (req, res) => {
 // Complete order (bill printed) - specific route must come first
 router.put('/:orderId/complete', protect, async (req, res) => {
   try {
+    const { paymentMethod } = req.body;
+    
     const order = await Order.findByIdAndUpdate(
       req.params.orderId,
-      { status: 'completed' },
+      { 
+        status: 'completed',
+        paymentMethod: paymentMethod || null
+      },
       { new: true }
     );
 
-    // Update table status to free
-    const restaurant = await Restaurant.findById(order.restaurantId);
-    const table = restaurant.tables.find(t => t.label === order.tableLabel);
-    if (table) {
-      table.status = 'free';
-      await restaurant.save();
+    // Update table status to free (only for dine-in orders)
+    if (order.orderType === 'dine-in') {
+      const restaurant = await Restaurant.findById(order.restaurantId);
+      const table = restaurant.tables.find(t => t.label === order.tableLabel);
+      if (table) {
+        table.status = 'free';
+        await restaurant.save();
+      }
     }
 
     res.json(order);

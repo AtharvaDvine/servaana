@@ -42,7 +42,7 @@ export const orderAPI = {
   getActive: (restaurantId) => api.get(`/orders/restaurant/${restaurantId}`),
   getTakeaway: (restaurantId) => api.get(`/orders/restaurant/${restaurantId}/takeaway`),
   updateStatus: (orderId, status) => api.put(`/orders/${orderId}/status`, { status }),
-  complete: (orderId) => api.put(`/orders/${orderId}/complete`),
+  complete: (orderId, paymentMethod = null) => api.put(`/orders/${orderId}/complete`, { paymentMethod }),
   generateSummary: (restaurantId, date) => api.post(`/orders/${restaurantId}/generate-summary`, { date }),
   getHistory: (restaurantId, period = 'daily', limit = 30) => 
     api.get(`/orders/${restaurantId}/history?period=${period}&limit=${limit}`),

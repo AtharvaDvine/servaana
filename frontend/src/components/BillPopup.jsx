@@ -4,6 +4,7 @@ import useStore from '../stores/useStore';
 import useToastStore from '../stores/useToastStore';
 import { orderAPI } from '../utils/api';
 import { playNotificationSound, showBrowserNotification } from '../utils/notifications';
+import PaymentMethodModal from './PaymentMethodModal';
 
 const BillPopup = () => {
   const { 
@@ -17,6 +18,7 @@ const BillPopup = () => {
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -51,12 +53,12 @@ const BillPopup = () => {
     }
   }, [selectedTable, restaurant]);
 
-  const handlePrintBill = async () => {
+  const handleCompleteOrder = async (paymentMethod) => {
     if (!order) return;
 
     setLoading(true);
     try {
-      await orderAPI.complete(order._id);
+      await orderAPI.complete(order._id, paymentMethod);
       completeOrder(order._id);
 
       // Update table status in restaurant state
@@ -89,7 +91,7 @@ const BillPopup = () => {
         browserNotifications
       );
 
-      success(`Order completed successfully! Total: ₹${order.totalAmount.toFixed(2)}`);
+      success(`Order completed successfully! Payment: ${paymentMethod.toUpperCase()} - Total: ₹${order.totalAmount.toFixed(2)}`);
       
       // Simulate printing
       window.print();
@@ -195,7 +197,7 @@ const BillPopup = () => {
           </div>
 
           <button
-            onClick={handlePrintBill}
+            onClick={() => setShowPaymentModal(true)}
             disabled={loading}
             className="w-full btn-success flex items-center justify-center gap-2 py-4 mt-6 text-lg animate-bounce-soft"
           >
@@ -204,6 +206,17 @@ const BillPopup = () => {
           </button>
         </div>
       </div>
+      
+      {/* Payment Method Modal */}
+      <PaymentMethodModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirm={handleCompleteOrder}
+        orderDetails={{
+          tableLabel: selectedTable?.label,
+          totalAmount: order?.totalAmount
+        }}
+      />
     </div>
   );
 };
